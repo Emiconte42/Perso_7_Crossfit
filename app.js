@@ -66,7 +66,53 @@ const seed = [
 ];
 const percentages = [100, 95, 90, 85, 80, 75, 70, 65, 60, 50, 40, 30];
 const rmMultipliers = { 1: 1, 2: .95, 3: .93, 5: .87, 8: .8 };
+let prsMode = 'lift';
+let prsFilter = 'all';
 let records = JSON.parse(localStorage.getItem('forge-records') || 'null') || seed;
+const importedRecords = [
+  { name: 'Front Squat', value: 75, rm: 1, unit: 'kg', date: '2026-06-01' },
+  { name: 'Front Squat', value: 62.5, rm: 3, unit: 'kg', date: '2026-04-27' },
+  { name: 'Front Squat', value: 62, rm: 3, unit: 'kg', date: '2026-04-22' },
+  { name: 'Front Squat', value: 57.5, rm: 5, unit: 'kg', date: '2026-03-17' },
+  { name: 'Front Squat', value: 70, rm: 1, unit: 'kg', date: '2022-03-07' },
+  { name: 'Power Snatch', value: 41, rm: 1, unit: 'kg', date: '2026-05-27' },
+  { name: 'Power Snatch', value: 39, rm: 3, unit: 'kg', date: '2026-05-27' },
+  { name: 'Power Snatch', value: 36, rm: 5, unit: 'kg', date: '2026-05-27' },
+  { name: 'Back Squat', value: 78, rm: 3, unit: 'kg', date: '2026-02-10' },
+  { name: 'Back Squat', value: 72.5, rm: 5, unit: 'kg', date: '2025-12-29' },
+  { name: 'Back Squat', value: 85, rm: 1, unit: 'kg', date: '2024-05-31' },
+  { name: 'Back Squat', value: 80, rm: 1, unit: 'kg', date: '2023-12-12' },
+  { name: 'Back Squat', value: 75, rm: 1, unit: 'kg', date: '2023-11-30' },
+  { name: 'Back Squat', value: 73, rm: 1, unit: 'kg', date: '2022-03-07' },
+  { name: 'Power Clean', value: 40, rm: 3, unit: 'kg', date: '2025-06-27' },
+  { name: 'Power Clean', value: 35, rm: 5, unit: 'kg', date: '2025-06-27' },
+  { name: 'Power Clean', value: 50, rm: 1, unit: 'kg', date: '2025-05-26' },
+  { name: 'Power Clean', value: 40, rm: 1, unit: 'kg', date: '2022-03-07' },
+  { name: 'Deadlift', value: 120, rm: 1, unit: 'kg', date: '2025-02-26' },
+  { name: 'Deadlift', value: 107, rm: 3, unit: 'kg', date: '2025-02-20' },
+  { name: 'Deadlift', value: 107, rm: 2, unit: 'kg', date: '2025-02-20' },
+  { name: 'Deadlift', value: 97.5, rm: 3, unit: 'kg', date: '2025-02-13' },
+  { name: 'Deadlift', value: 95, rm: 5, unit: 'kg', date: '2025-12-26' },
+  { name: 'Deadlift', value: 89, rm: 3, unit: 'kg', date: '2025-04-28' },
+  { name: 'Deadlift', value: 112.5, rm: 1, unit: 'kg', date: '2024-05-31' },
+  { name: 'Deadlift', value: 112.5, rm: 1, unit: 'kg', date: '2024-05-22' },
+  { name: 'Deadlift', value: 95, rm: 1, unit: 'kg', date: '2024-04-24' },
+  { name: 'Deadlift', value: 92.5, rm: 1, unit: 'kg', date: '2024-04-19' },
+  { name: 'Deadlift', value: 85, rm: 1, unit: 'kg', date: '2022-03-07' },
+  { name: 'Deadlift', value: 80, rm: 1, unit: 'kg', date: '2022-01-13' },
+  { name: 'Bench Press', value: 57.5, rm: 3, unit: 'kg', date: '2026-03-31' },
+  { name: 'Bench Press', value: 53, rm: 3, unit: 'kg', date: '2026-02-09' },
+  { name: 'Bench Press', value: 62.5, rm: 1, unit: 'kg', date: '2025-12-15' },
+  { name: 'Bench Press', value: 51, rm: 3, unit: 'kg', date: '2025-12-01' },
+  { name: 'Bench Press', value: 56, rm: 1, unit: 'kg', date: '2025-05-23' },
+  { name: 'Bench Press', value: 42.5, rm: 5, unit: 'kg', date: '2024-12-10' },
+  { name: 'Bench Press', value: 52.5, rm: 1, unit: 'kg', date: '2024-11-29' },
+  { name: 'Bench Press', value: 45, rm: 1, unit: 'kg', date: '2022-03-07' }
+];
+importedRecords.forEach(record => {
+  if (!records.some(existing => existing.name === record.name && existing.value === record.value && existing.rm === record.rm && existing.date === record.date)) records.push(record);
+});
+localStorage.setItem('forge-records', JSON.stringify(records));
 seed.forEach(record => {
   if (!records.some(existing => existing.name === record.name && existing.value === record.value && existing.date === record.date)) records.push(record);
 });
@@ -75,6 +121,7 @@ let profile = JSON.parse(localStorage.getItem('forge-profile') || 'null') || { n
 let currentView = 'prs';
 let selectedExercise = null;
 let selectedRm = 1;
+let profileSection = 'info';
 const content = document.querySelector('#app-content');
 const title = document.querySelector('#page-title');
 const formatDate = value => new Date(`${value}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -98,6 +145,14 @@ const bestRecord = name => {
 const formatRecord = record => record ? `${record.value} ${record.unit}` : '';
 const categoryHasWeight = names => names.some(name => recordsFor(name).some(record => Number(record.value) > 0));
 const groupByCategory = () => exerciseList().reduce((groups, name) => { const category = exercises[name].category; (groups[category] ||= []).push(name); return groups; }, {});
+const prsGroups = {
+  lift: ['Squats', 'Cleans', 'Presses', 'Jerks', 'Snatches', 'Deadlifts', 'Olympic Lifts'],
+  gym: ['Max Reps', '1 RM', 'Max Distance'],
+  cardio: ['Run', 'Row', 'Ski Erg', 'Assault Bike', 'Burpees'],
+  benchmarks: ['Girls', 'Heroes', 'Open', 'Notable']
+};
+const prsLabels = { lift: 'Lift', gym: 'Gym', cardio: 'Cardio', benchmarks: 'Benchmarks' };
+const filteredPrsGroups = () => Object.fromEntries(Object.entries(groupByCategory()).filter(([category]) => prsGroups[prsMode].includes(category)).filter(([category]) => prsFilter === 'all' || category === prsFilter));
 const colorForCategory = category => categoryColors[category] || '#96999f';
 const infoFor = name => exerciseInfo[name] || { intro: 'Les principaux muscles sollicités par ce mouvement.', muscles: [['Muscles principaux', colorForCategory(exercises[name].category)]], steps: ['Position de départ', 'Réalisation contrôlée', 'Retour en position stable'], photos: [] };
 const age = () => profile.birthDate ? Math.floor((Date.now() - new Date(profile.birthDate).getTime()) / 31557600000) : '—';
@@ -151,10 +206,12 @@ function render() {
   title.textContent = labels[currentView];
   document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === currentView));
   content.innerHTML = ({ prs: renderPrs, fit: renderFit, general: renderGeneral, profile: renderProfile, detail: renderDetail })[currentView]();
-  if (currentView === 'profile') renderGallery();
+  if (currentView === 'profile' && profileSection === 'gallery') renderGallery();
 }
 function renderPrs() {
-  return `<section class="view"><div class="section-heading prs-heading"><p>${exerciseList().length} exercices disponibles</p></div>${Object.entries(groupByCategory()).map(([category, names]) => `<section class="category" style="--category-color:${colorForCategory(category)}"><div class="category-title"><h3>${category}</h3>${categoryHasWeight(names) ? '<span class="dot"></span>' : ''}</div>${names.map(name => `<div class="exercise-row"><button class="exercise-main" data-exercise="${name}"><span><strong class="exercise-name">${name}</strong><small>${exercises[name].discipline.join(' · ')}</small></span><span class="exercise-value">${formatRecord(bestRecord(name))}</span></button><button class="exercise-info" data-info="${name}" aria-label="Informations sur ${name}">i</button></div>`).join('')}</section>`).join('')}</section>`;
+  const categories = [...new Set(prsGroups[prsMode].filter(category => groupByCategory()[category]))];
+  const groups = filteredPrsGroups();
+  return `<section class="view prs-view"><div class="section-heading prs-heading"><p>${exerciseList().length} exercices disponibles</p></div><div class="prs-main-tabs">${Object.entries(prsLabels).map(([key, label]) => `<button class="${prsMode === key ? 'active' : ''}" data-prs-mode="${key}">${label}</button>`).join('')}</div><div class="prs-filters"><button class="${prsFilter === 'all' ? 'active' : ''}" data-prs-filter="all">Tous</button>${categories.map(category => `<button class="${prsFilter === category ? 'active' : ''}" data-prs-filter="${category}">${category}</button>`).join('')}</div>${Object.entries(groups).map(([category, names]) => `<section class="category" style="--category-color:${colorForCategory(category)}"><div class="category-title"><h3>${category}</h3><span class="dot"></span></div>${names.map(name => `<div class="exercise-row"><button class="exercise-main" data-exercise="${name}"><span><strong class="exercise-name">${name}</strong><small>${exercises[name].discipline.join(' · ')}</small></span><span class="exercise-value">${formatRecord(bestRecord(name))}</span></button><button class="exercise-info" data-info="${name}" aria-label="Informations sur ${name}">i</button></div>`).join('')}</section>`).join('') || '<p class="empty">Aucun exercice dans cette catégorie pour le moment.</p>'}</section>`;
 }
 function showExerciseInfo(name) {
   const info = infoFor(name);
@@ -166,6 +223,31 @@ function showExerciseInfo(name) {
   let slide = 0;
   const timer = photos.length > 1 ? setInterval(() => { if (!dialog.open) { clearInterval(timer); return; } slide = (slide + 1) % photos.length; carousel.scrollTo({ left: carousel.clientWidth * slide, behavior: 'smooth' }); }, 2800) : null;
 }
+function chartPath(points) {
+  if (!points.length) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  return points.map((point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`;
+    const previous = points[index - 1];
+    const controlX = (previous.x + point.x) / 2;
+    return `C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
+  }).join(' ');
+}
+function renderProgressChart(history, best) {
+  const values = history.filter(record => record.unit === 'kg').sort((a, b) => a.date.localeCompare(b.date));
+  if (!values.length || !best) return '<div class="chart-card"><div class="chart-title"><span>Progression</span><strong>Aucune donnée</strong></div></div>';
+  const max = Math.max(...values.map(record => Number(record.value)), best);
+  const min = Math.min(0, ...values.map(record => Number(record.value)));
+  const range = Math.max(1, max - min);
+  const points = values.map((record, index) => ({
+    x: values.length === 1 ? 50 : 6 + (index / (values.length - 1)) * 88,
+    y: 88 - ((Number(record.value) - min) / range) * 76
+  }));
+  const first = points[0];
+  const last = points[points.length - 1];
+  const trendPath = `M ${first.x} ${first.y} L ${last.x} ${last.y}`;
+  return `<div class="chart-card"><div class="chart-title"><span>Progression</span><strong>${best} kg</strong></div><div class="line-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Courbe de progression"><path class="chart-trend" d="${trendPath}"></path><path class="chart-line" d="${chartPath(points)}"></path>${points.map((point, index) => `<circle class="chart-point" cx="${point.x}" cy="${point.y}" r="1.25"><title>${values[index].value} kg · ${formatDate(values[index].date)}</title></circle>`).join('')}</svg></div><div class="chart-axis"><span>Historique</span><span>Aujourd'hui</span></div></div>`;
+}
 function renderDetail() {
   const movement = exercises[selectedExercise];
   const best = bestFor(selectedExercise);
@@ -173,20 +255,22 @@ function renderDetail() {
   const selectedBase = rmValues[selectedRm];
   const latest = recordsFor(selectedExercise).sort((a, b) => b.date.localeCompare(a.date))[0];
   const history = recordsFor(selectedExercise).sort((a, b) => b.date.localeCompare(a.date)).map(record => `<div class="rm-history-row"><span class="rm-badge">${record.unit === 'kg' ? `${recordRm(record)} RM` : record.unit}</span><span>${formatDate(record.date)}</span><strong>${record.value} ${record.unit}</strong></div>`).join('');
-  const chart = `<div class="chart-card"><div class="chart-title"><span>Progression</span><strong>${best} kg</strong></div><div class="line-chart">${recordsFor(selectedExercise).sort((a, b) => a.date.localeCompare(b.date)).map(record => `<div class="chart-point" style="left:${Math.max(4, Math.min(96, record.value / best * 92))}%;bottom:${Math.max(8, record.value / best * 75)}%" title="${record.value} kg"></div>`).join('')}<div class="chart-line"></div></div><div class="chart-axis"><span>Historique</span><span>Aujourd'hui</span></div></div>`;
+  const chart = renderProgressChart(recordsFor(selectedExercise), best);
   const analytics = `<div class="analytics-panel"><div class="section-heading"><h3>Analytics</h3><p>${selectedRm}RM · charges de travail</p></div><div class="percentage-grid">${percentages.map(percent => `<button class="percentage-card" data-percent="${percent}" data-exercise="${selectedExercise}"><strong>${percent}%</strong><span>${Math.round(selectedBase * percent / 100 * 2) / 2} kg</span></button>`).join('')}</div></div>`;
-  return `<section class="view detail-view"><button class="back-link" data-view="prs">← Toutes mes PRs</button><div class="detail-heading"><div><p class="eyebrow" style="color:${colorForCategory(movement.category)}">${movement.category.toUpperCase()}</p><h2>${selectedExercise}</h2><p>${movement.description}</p></div><span class="detail-dot" style="background:${colorForCategory(movement.category)}"></span></div><div class="rm-selector">${[1, 3, 5, 8].map(rm => `<button class="rm-option ${selectedRm === rm ? 'selected' : ''}" data-rm="${rm}"><strong>${rm}RM</strong><span>${rmValues[rm]} kg</span></button>`).join('')}</div>${analytics}<div class="record-highlight"><span>${selectedRm}RM</span><strong>${selectedBase} kg</strong><small>Dernière mise à jour · ${formatDate(latest.date)}</small></div>${chart}<div class="section-heading history-heading"><h3>Historique</h3><p>Tous les RM confondus</p></div><div class="rm-history">${history}</div></section>`;
+  return `<section class="view detail-view"><button class="back-link" data-view="prs">← Toutes mes PRs</button><div class="detail-heading"><div><p class="eyebrow" style="color:${colorForCategory(movement.category)}">${movement.category.toUpperCase()}</p><h2>${selectedExercise}</h2><p>${movement.description}</p></div><div class="detail-actions"><span class="detail-dot" style="background:${colorForCategory(movement.category)}"></span><button type="button" class="detail-add" data-add-exercise="${selectedExercise}" aria-label="Ajouter une performance pour ${selectedExercise}">+</button></div></div><div class="rm-selector">${[1, 3, 5, 8].map(rm => `<button class="rm-option ${selectedRm === rm ? 'selected' : ''}" data-rm="${rm}"><strong>${rm}RM</strong><span>${rmValues[rm]} kg</span></button>`).join('')}</div>${analytics}<div class="record-highlight"><span>${selectedRm}RM</span><strong>${selectedBase} kg</strong><small>Dernière mise à jour · ${latest ? formatDate(latest.date) : 'Aucune'}</small></div>${chart}<div class="section-heading history-heading"><h3>Historique</h3><p>Tous les RM confondus</p></div><div class="rm-history">${history || '<p class="empty">Aucune performance enregistrée.</p>'}</div></section>`;
 }
 function renderFit() {
   const dimensions = [{ name: 'Haltéro', value: 0, color: '#efae52' }, { name: 'Force', value: Math.min(100, Math.round((bestFor('Back Squat') + bestFor('Deadlift') + bestFor('Bench Press')) / 3)), color: '#efae52' }, { name: 'Vitesse', value: 0, color: '#4c9cff' }, { name: 'Endurance', value: 0, color: '#efae52' }, { name: 'Long', value: 0, color: '#aaa' }, { name: 'Bodyweight', value: 0, color: '#aaa' }, { name: 'Lourd', value: bestFor('Deadlift') ? 79 : 0, color: '#5ac3aa' }, { name: 'Léger', value: 0, color: '#aaa' }];
   const known = dimensions.filter(item => item.value); const overall = known.length ? Math.round(known.reduce((total, item) => total + item.value, 0) / known.length) : 0;
-  return `<section class="view fit-view"><div class="fit-heading"><span class="fit-mark">✦</span><h2>FIT LEVEL</h2></div><div class="fit-score"><div class="fit-ring" style="--score:${overall * 3.6}deg"><strong>${overall}</strong><span>%</span></div></div><div class="fit-grid">${dimensions.map(item => `<div class="fit-metric"><strong style="color:${item.value ? item.color : 'var(--muted)'}">${item.value || 'NA'}<small>${item.value ? '%' : ''}</small></strong><div class="metric-bar"><i style="height:${Math.max(0, item.value)}%;background:${item.color}"></i></div><span class="metric-icon">${fitIcon(item.name)}</span><label>${item.name}</label></div>`).join('')}</div><div class="fit-insight"><div><p class="insight-label">Point fort</p><strong>${known.sort((a, b) => b.value - a.value)[0]?.name || 'À construire'}</strong><span>Continue à nourrir tes mouvements lourds</span></div><div><p class="insight-label">À développer</p><strong>${dimensions.find(item => !item.value).name}</strong><span>Ajoute des performances pour le mesurer</span></div></div></section>`;
+  return `<section class="view fit-view"><div class="fit-heading"><span class="fit-mark">✦</span><h2>FIT LEVEL</h2></div><div class="fit-score"><div class="fit-ring" style="--score:${overall * 3.6}deg"><strong>${overall}</strong><span>%</span></div></div><div class="fit-grid">${dimensions.map(item => `<div class="fit-metric"><strong style="color:${item.value ? item.color : 'var(--muted)'}">${item.value || 'NA'}<small>${item.value ? '%' : ''}</small></strong><div class="metric-bar"><i style="height:${Math.max(0, item.value)}%;background:${item.color}"></i></div><span class="metric-icon">${fitIcon(item.name)}</span><label>${item.name}</label></div>`).join('')}</div></section>`;
 }
 function renderGeneral() {
   return `<section class="view"><p class="eyebrow">TABLEAU DE BORD</p><h2>Vue générale</h2><div class="general-score"><div><span>FIT LEVEL</span><strong>${Math.round((bestFor('Back Squat') + bestFor('Deadlift')) / 4)}</strong><small>/ 100</small></div><div class="general-note">Ton suivi commence par trois mouvements clés. Les autres disciplines seront ajoutées ensuite.</div></div><div class="section-heading"><h3>Records principaux</h3><p>1RM</p></div><div class="general-prs">${exerciseList().map(name => `<button data-exercise="${name}"><span>${name}</span><strong>${bestFor(name)} kg</strong></button>`).join('')}</div><div class="stat-grid"><div class="stat-card"><strong>${records.length}</strong><span>ENTRÉES</span></div><div class="stat-card"><strong>${new Set(records.map(record => record.date.slice(0, 7))).size}</strong><span>MOIS ACTIFS</span></div></div></section>`;
 }
 function renderProfile() {
-  return `<section class="view"><div class="profile-cover"><div class="profile-avatar">E</div><div><h2>${profile.name}</h2><p>Compte personnel</p></div></div><form id="profile-form" class="profile-form"><div class="form-section-title">Informations personnelles</div><label>Nom<input name="name" value="${profile.name}"></label><label>Date de naissance<input name="birthDate" type="date" value="${profile.birthDate}"></label><div class="profile-data-grid"><label>Poids (kg)<input name="weight" type="number" step="0.1" value="${profile.weight}"></label><label>Taille (cm)<input name="height" type="number" value="${profile.height}"></label><label>Taux de graisse (%)<input name="bodyFat" type="number" step="0.1" value="${profile.bodyFat}"></label><div class="profile-readonly"><span>Âge</span><strong>${age()} ans</strong></div><div class="profile-readonly"><span>IMC</span><strong>${bmi()}</strong></div></div><button class="primary-button">Enregistrer mon profil</button></form><section class="gallery-section"><div class="section-heading"><h2>Galerie</h2><p>Souvenirs de séances</p></div><div id="gallery-grid" class="gallery-grid"><p class="empty">Aucun souvenir pour le moment.</p></div></section></section>`;
+  const info = `<form id="profile-form" class="profile-form"><div class="form-section-title">Informations personnelles</div><label>Nom<input name="name" value="${profile.name}"></label><label>Date de naissance<input name="birthDate" type="date" value="${profile.birthDate}"></label><div class="profile-data-grid"><label>Poids (kg)<input name="weight" type="number" step="0.1" value="${profile.weight}"></label><label>Taille (cm)<input name="height" type="number" value="${profile.height}"></label><label>Taux de graisse (%)<input name="bodyFat" type="number" step="0.1" value="${profile.bodyFat}"></label><div class="profile-readonly"><span>Âge</span><strong>${age()} ans</strong></div><div class="profile-readonly"><span>IMC</span><strong>${bmi()}</strong></div></div><button class="primary-button">Enregistrer mon profil</button></form>`;
+  const gallery = `<section class="gallery-section"><div class="section-heading"><h2>Galerie</h2><p>Souvenirs de séances</p></div><div id="gallery-grid" class="gallery-grid"><p class="empty">Aucun souvenir pour le moment.</p></div></section>`;
+  return `<section class="view"><div class="profile-cover"><div class="profile-avatar">E</div><div><h2>${profile.name}</h2><p>Compte personnel</p></div></div><div class="profile-tabs"><button class="${profileSection === 'info' ? 'selected' : ''}" data-profile-tab="info">Informations personnelles</button><button class="${profileSection === 'gallery' ? 'selected' : ''}" data-profile-tab="gallery">Galerie</button></div>${profileSection === 'info' ? info : gallery}</section>`;
 }
 async function renderGallery() {
   const gallery = document.querySelector('#gallery-grid');
@@ -198,8 +282,8 @@ async function renderGallery() {
     return `<article class="gallery-card">${visual}<div><strong>${record.name}</strong><span>${formatDate(record.date)} · ${record.value} ${record.unit}${record.unit === 'kg' ? ` · ${recordRm(record)}RM` : ''}</span></div></article>`;
   }).join('') : '<p class="empty">Aucun souvenir pour le moment.</p>';
 }
-function openForm() { const dialog = document.querySelector('#performance-dialog'); document.querySelector('#exercise-input').innerHTML = exerciseList().map(name => `<option>${name}</option>`).join(''); document.querySelector('#date-input').value = new Date().toISOString().slice(0, 10); document.querySelector('#unit-input').dispatchEvent(new Event('change')); dialog.showModal(); }
-document.addEventListener('click', event => { const navigation = event.target.closest('[data-view]'); const movement = event.target.closest('[data-exercise]'); const info = event.target.closest('[data-info]'); const percentage = event.target.closest('[data-percent]'); const rm = event.target.closest('[data-rm]'); if (navigation) { currentView = navigation.dataset.view; render(); } if (movement) { selectedExercise = movement.dataset.exercise; selectedRm = 1; currentView = 'detail'; render(); } if (info) showExerciseInfo(info.dataset.info); if (percentage) showPlates(Number(percentage.dataset.percent), percentage.dataset.exercise, selectedRm); if (rm) { selectedRm = Number(rm.dataset.rm); render(); } if (event.target.closest('#open-form')) openForm(); if (event.target.closest('#close-performance-dialog')) document.querySelector('#performance-dialog').close(); if (event.target.closest('.close-info')) document.querySelector('#exercise-info-dialog').close(); });
+function openForm(exercise = '') { const dialog = document.querySelector('#performance-dialog'); const select = document.querySelector('#exercise-input'); select.innerHTML = exerciseList().map(name => `<option>${name}</option>`).join(''); if (exercise) select.value = exercise; document.querySelector('#date-input').value = new Date().toISOString().slice(0, 10); document.querySelector('#unit-input').dispatchEvent(new Event('change')); dialog.showModal(); }
+document.addEventListener('click', event => { const navigation = event.target.closest('[data-view]'); const movement = event.target.closest('[data-exercise]'); const info = event.target.closest('[data-info]'); const percentage = event.target.closest('[data-percent]'); const rm = event.target.closest('[data-rm]'); const profileTab = event.target.closest('[data-profile-tab]'); const detailAdd = event.target.closest('[data-add-exercise]'); const prsModeButton = event.target.closest('[data-prs-mode]'); const prsFilterButton = event.target.closest('[data-prs-filter]'); if (navigation) { currentView = navigation.dataset.view; render(); } if (prsModeButton) { prsMode = prsModeButton.dataset.prsMode; prsFilter = 'all'; render(); } if (prsFilterButton) { prsFilter = prsFilterButton.dataset.prsFilter; render(); } if (movement) { selectedExercise = movement.dataset.exercise; selectedRm = 1; currentView = 'detail'; render(); } if (info) showExerciseInfo(info.dataset.info); if (percentage) showPlates(Number(percentage.dataset.percent), percentage.dataset.exercise, selectedRm); if (rm) { selectedRm = Number(rm.dataset.rm); render(); } if (profileTab) { profileSection = profileTab.dataset.profileTab; render(); } if (detailAdd) openForm(detailAdd.dataset.addExercise); if (event.target.closest('#open-form')) openForm(); if (event.target.closest('#close-performance-dialog')) document.querySelector('#performance-dialog').close(); if (event.target.closest('.close-info')) document.querySelector('#exercise-info-dialog').close(); });
 document.addEventListener('change', event => { if (event.target.id === 'unit-input') document.querySelector('#rm-input').disabled = event.target.value !== 'kg'; });
 document.addEventListener('submit', async event => { if (event.target.id === 'profile-form') { event.preventDefault(); const data = new FormData(event.target); profile = Object.fromEntries(data.entries()); localStorage.setItem('forge-profile', JSON.stringify(profile)); render(); renderGallery(); } if (event.target.id === 'performance-form') { event.preventDefault(); const name = document.querySelector('#exercise-input').value; const unit = document.querySelector('#unit-input').value; const file = document.querySelector('#media-input').files[0]; const mediaId = file ? await mediaDb.save(file) : null; records.push({ name, value: Number(document.querySelector('#value-input').value), rm: unit === 'kg' ? Number(document.querySelector('#rm-input').value) : null, unit, date: document.querySelector('#date-input').value, mediaId }); localStorage.setItem('forge-records', JSON.stringify(records)); event.target.closest('dialog').close(); currentView = 'prs'; render(); } });
 function showPlates(percent, name, rm) { const rmMultiplier = { 1: 1, 3: .87, 5: .8, 8: .72 }; const selectedBase = bestFor(name) * rmMultiplier[rm]; const total = Math.round(selectedBase * percent / 100 * 2) / 2; const perSide = Math.max(0, (total - 15) / 2); const available = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5]; let remainder = perSide; const plates = []; available.forEach(weight => { while (remainder >= weight) { plates.push(weight); remainder = Math.round((remainder - weight) * 100) / 100; } }); const leftPlates = [...plates].reverse(); const loadedPerSide = plates.reduce((sum, weight) => sum + weight, 0); const formatWeight = weight => String(weight).replace('.', ','); document.querySelector('#plates-dialog').innerHTML = `<div class="plates-modal"><button class="close-button" data-close-plates>×</button><p class="eyebrow">${name.toUpperCase()}</p><h2>${rm}RM · ${percent}% · ${total} kg</h2><div class="barbell"><div class="bar-sleeve"></div><div class="plates">${leftPlates.map(weight => `<i class="plate plate-${String(weight).replace('.', '-')}">${weight}</i>`).join('')}</div><div class="bar-center">BARRE<br><strong>15 kg</strong></div><div class="plates mirror">${plates.map(weight => `<i class="plate plate-${String(weight).replace('.', '-')}">${weight}</i>`).join('')}</div></div><p class="plate-note">${plates.length ? `${plates.map(formatWeight).join(' + ')} kg = ${formatWeight(loadedPerSide)} kg de chaque côté` : 'Barre seule'}</p><button class="primary-button" data-close-plates>Fermer</button></div>`; document.querySelector('#plates-dialog').showModal(); }
