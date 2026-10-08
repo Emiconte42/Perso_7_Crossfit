@@ -141,6 +141,17 @@ const mediaDb = (() => {
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
+    },
+    saveBlob: async (blob, type) => {
+      const db = await open();
+      const id = crypto.randomUUID();
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction('attachments', 'readwrite');
+        transaction.objectStore('attachments').put({ id, blob, type });
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+      });
+      return id;
     }
   };
 })();
@@ -213,8 +224,53 @@ function renderGeneral() {
 }
 function renderProfile() {
   const info = `<form id="profile-form" class="profile-form"><div class="form-section-title">Informations personnelles</div><label>Nom<input name="name" value="${profile.name}"></label><label>Date de naissance<input name="birthDate" type="date" value="${profile.birthDate}"></label><div class="profile-data-grid"><label>Poids (kg)<input name="weight" type="number" step="0.1" value="${profile.weight}"></label><label>Taille (cm)<input name="height" type="number" value="${profile.height}"></label><label>Taux de graisse (%)<input name="bodyFat" type="number" step="0.1" value="${profile.bodyFat}"></label><div class="profile-readonly"><span>Âge</span><strong>${age()} ans</strong></div><div class="profile-readonly"><span>IMC</span><strong>${bmi()}</strong></div></div><button class="primary-button">Enregistrer mon profil</button></form>`;
+  const backup = `<section class="data-backup"><div class="section-heading"><h2>Sauvegarde</h2><p>Mes données uniquement</p></div><p>Exporte tes performances, ton profil et tes médias pour les conserver ou les transférer sur un autre téléphone.</p><div class="backup-actions"><button type="button" class="primary-button" data-export-data>Exporter mes données</button><button type="button" class="secondary-button" data-import-data>Importer une sauvegarde</button><input id="import-data-input" type="file" accept="application/json,.json" hidden></div></section>`;
   const gallery = `<section class="gallery-section"><div class="section-heading"><h2>Galerie</h2><p>Souvenirs de séances</p></div><div id="gallery-grid" class="gallery-grid"><p class="empty">Aucun souvenir pour le moment.</p></div></section>`;
-  return `<section class="view"><div class="profile-cover"><div class="profile-avatar">E</div><div><h2>${profile.name}</h2><p>Compte personnel</p></div></div><div class="profile-tabs"><button class="${profileSection === 'info' ? 'selected' : ''}" data-profile-tab="info">Informations personnelles</button><button class="${profileSection === 'gallery' ? 'selected' : ''}" data-profile-tab="gallery">Galerie</button></div>${profileSection === 'info' ? info : gallery}</section>`;
+  return `<section class="view"><div class="profile-cover"><div class="profile-avatar">E</div><div><h2>${profile.name || 'Mon profil'}</h2><p>Compte personnel</p></div></div><div class="profile-tabs"><button class="${profileSection === 'info' ? 'selected' : ''}" data-profile-tab="info">Informations personnelles</button><button class="${profileSection === 'gallery' ? 'selected' : ''}" data-profile-tab="gallery">Galerie</button></div>${profileSection === 'info' ? `${info}${backup}` : gallery}</section>`;
+}
+const blobToBase64 = blob => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+async function exportData() {
+  const media = [];
+  const mediaIds = [...new Set(records.map(record => record.mediaId).filter(Boolean))];
+  for (const id of mediaIds) {
+    const item = await mediaDb.get(id);
+    if (item) media.push({ id, type: item.type, data: await blobToBase64(item.blob) });
+  }
+  const payload = { version: 1, exportedAt: new Date().toISOString(), profile, records, media };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `forge-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+const base64ToBlob = (data, type) => {
+  const bytes = Uint8Array.from(atob(data), character => character.charCodeAt(0));
+  return new Blob([bytes], { type });
+};
+async function importData(file) {
+  const text = await file.text();
+  const payload = JSON.parse(text);
+  if (!payload || payload.version !== 1 || !Array.isArray(payload.records) || !payload.profile || !Array.isArray(payload.media)) throw new Error('Format de sauvegarde non reconnu.');
+  if (!confirm('Importer cette sauvegarde et remplacer les données actuelles ?')) return;
+  const mediaMap = new Map();
+  for (const item of payload.media) {
+    if (!item.id || !item.data || !item.type) throw new Error('Un média de la sauvegarde est invalide.');
+    mediaMap.set(item.id, await mediaDb.saveBlob(base64ToBlob(item.data, item.type), item.type));
+  }
+  records = payload.records.map(record => ({ ...record, mediaId: record.mediaId ? mediaMap.get(record.mediaId) || null : null }));
+  profile = payload.profile;
+  localStorage.setItem('forge-records', JSON.stringify(records));
+  localStorage.setItem('forge-profile', JSON.stringify(profile));
+  currentView = 'profile';
+  profileSection = 'info';
+  render();
+  alert('Sauvegarde importée avec succès.');
 }
 async function renderGallery() {
   const gallery = document.querySelector('#gallery-grid');
@@ -227,8 +283,9 @@ async function renderGallery() {
   }).join('') : '<p class="empty">Aucun souvenir pour le moment.</p>';
 }
 function openForm(exercise = '') { const dialog = document.querySelector('#performance-dialog'); const select = document.querySelector('#exercise-input'); select.innerHTML = exerciseList().map(name => `<option>${name}</option>`).join(''); if (exercise) select.value = exercise; document.querySelector('#date-input').value = new Date().toISOString().slice(0, 10); document.querySelector('#unit-input').dispatchEvent(new Event('change')); dialog.showModal(); }
-document.addEventListener('click', event => { const navigation = event.target.closest('[data-view]'); const movement = event.target.closest('[data-exercise]'); const info = event.target.closest('[data-info]'); const percentage = event.target.closest('[data-percent]'); const rm = event.target.closest('[data-rm]'); const profileTab = event.target.closest('[data-profile-tab]'); const detailAdd = event.target.closest('[data-add-exercise]'); const prsModeButton = event.target.closest('[data-prs-mode]'); const prsFilterButton = event.target.closest('[data-prs-filter]'); const deleteButton = event.target.closest('[data-delete-record]'); if (navigation) { currentView = navigation.dataset.view; render(); } if (prsModeButton) { prsMode = prsModeButton.dataset.prsMode; prsFilter = 'all'; render(); } if (prsFilterButton) { prsFilter = prsFilterButton.dataset.prsFilter; render(); } if (deleteButton) { const index = Number(deleteButton.dataset.deleteRecord); if (records[index] && confirm('Supprimer cette performance ?')) { records.splice(index, 1); localStorage.setItem('forge-records', JSON.stringify(records)); render(); } } if (movement) { selectedExercise = movement.dataset.exercise; selectedRm = 1; currentView = 'detail'; render(); } if (info) showExerciseInfo(info.dataset.info); if (percentage) showPlates(Number(percentage.dataset.percent), percentage.dataset.exercise, selectedRm); if (rm) { selectedRm = Number(rm.dataset.rm); render(); } if (profileTab) { profileSection = profileTab.dataset.profileTab; render(); } if (detailAdd) openForm(detailAdd.dataset.addExercise); if (event.target.closest('#open-form')) openForm(); if (event.target.closest('#close-performance-dialog')) document.querySelector('#performance-dialog').close(); if (event.target.closest('.close-info')) document.querySelector('#exercise-info-dialog').close(); });
+document.addEventListener('click', event => { const navigation = event.target.closest('[data-view]'); const movement = event.target.closest('[data-exercise]'); const info = event.target.closest('[data-info]'); const percentage = event.target.closest('[data-percent]'); const rm = event.target.closest('[data-rm]'); const profileTab = event.target.closest('[data-profile-tab]'); const detailAdd = event.target.closest('[data-add-exercise]'); const prsModeButton = event.target.closest('[data-prs-mode]'); const prsFilterButton = event.target.closest('[data-prs-filter]'); const deleteButton = event.target.closest('[data-delete-record]'); if (navigation) { currentView = navigation.dataset.view; render(); } if (prsModeButton) { prsMode = prsModeButton.dataset.prsMode; prsFilter = 'all'; render(); } if (prsFilterButton) { prsFilter = prsFilterButton.dataset.prsFilter; render(); } if (deleteButton) { const index = Number(deleteButton.dataset.deleteRecord); if (records[index] && confirm('Supprimer cette performance ?')) { records.splice(index, 1); localStorage.setItem('forge-records', JSON.stringify(records)); render(); } } if (movement) { selectedExercise = movement.dataset.exercise; selectedRm = 1; currentView = 'detail'; render(); } if (info) showExerciseInfo(info.dataset.info); if (percentage) showPlates(Number(percentage.dataset.percent), percentage.dataset.exercise, selectedRm); if (rm) { selectedRm = Number(rm.dataset.rm); render(); } if (profileTab) { profileSection = profileTab.dataset.profileTab; render(); } if (detailAdd) openForm(detailAdd.dataset.addExercise); if (event.target.closest('[data-export-data]')) exportData().catch(error => alert(`Export impossible : ${error.message}`)); if (event.target.closest('[data-import-data]')) document.querySelector('#import-data-input').click(); if (event.target.closest('#open-form')) openForm(); if (event.target.closest('#close-performance-dialog')) document.querySelector('#performance-dialog').close(); if (event.target.closest('.close-info')) document.querySelector('#exercise-info-dialog').close(); });
 document.addEventListener('change', event => { if (event.target.id === 'unit-input') document.querySelector('#rm-input').disabled = event.target.value !== 'kg'; });
+document.addEventListener('change', event => { if (event.target.id === 'import-data-input' && event.target.files[0]) importData(event.target.files[0]).catch(error => alert(`Import impossible : ${error.message}`)); });
 document.addEventListener('submit', async event => { if (event.target.id === 'profile-form') { event.preventDefault(); const data = new FormData(event.target); profile = Object.fromEntries(data.entries()); localStorage.setItem('forge-profile', JSON.stringify(profile)); render(); renderGallery(); } if (event.target.id === 'performance-form') { event.preventDefault(); const name = document.querySelector('#exercise-input').value; const unit = document.querySelector('#unit-input').value; const file = document.querySelector('#media-input').files[0]; const mediaId = file ? await mediaDb.save(file) : null; records.push({ name, value: Number(document.querySelector('#value-input').value), rm: unit === 'kg' ? Number(document.querySelector('#rm-input').value) : null, unit, date: document.querySelector('#date-input').value, mediaId }); localStorage.setItem('forge-records', JSON.stringify(records)); event.target.closest('dialog').close(); currentView = 'prs'; render(); } });
 function showPlates(percent, name, rm) { const rmMultiplier = { 1: 1, 3: .87, 5: .8, 8: .72 }; const selectedBase = bestFor(name) * rmMultiplier[rm]; const total = Math.round(selectedBase * percent / 100 * 2) / 2; const perSide = Math.max(0, (total - 15) / 2); const available = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5]; let remainder = perSide; const plates = []; available.forEach(weight => { while (remainder >= weight) { plates.push(weight); remainder = Math.round((remainder - weight) * 100) / 100; } }); const leftPlates = [...plates].reverse(); const loadedPerSide = plates.reduce((sum, weight) => sum + weight, 0); const formatWeight = weight => String(weight).replace('.', ','); document.querySelector('#plates-dialog').innerHTML = `<div class="plates-modal"><button class="close-button" data-close-plates>×</button><p class="eyebrow">${name.toUpperCase()}</p><h2>${rm}RM · ${percent}% · ${total} kg</h2><div class="barbell"><div class="bar-sleeve"></div><div class="plates">${leftPlates.map(weight => `<i class="plate plate-${String(weight).replace('.', '-')}">${weight}</i>`).join('')}</div><div class="bar-center">BARRE<br><strong>15 kg</strong></div><div class="plates mirror">${plates.map(weight => `<i class="plate plate-${String(weight).replace('.', '-')}">${weight}</i>`).join('')}</div></div><p class="plate-note">${plates.length ? `${plates.map(formatWeight).join(' + ')} kg = ${formatWeight(loadedPerSide)} kg de chaque côté` : 'Barre seule'}</p><button class="primary-button" data-close-plates>Fermer</button></div>`; document.querySelector('#plates-dialog').showModal(); }
 document.querySelector('#plates-dialog').addEventListener('click', event => { if (event.target.closest('[data-close-plates]')) event.currentTarget.close(); });
