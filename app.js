@@ -76,7 +76,12 @@ const bestForRm = (name, rm) => {
   const matching = recordsFor(name).filter(record => record.unit === 'kg' && recordRm(record) === rm);
   return matching.length ? Math.max(...matching.map(record => record.value)) : 0;
 };
-const bestFor = name => Math.max(...recordsFor(name).filter(record => record.unit === 'kg').map(record => record.value / (rmMultipliers[recordRm(record)] || 1)), 0);
+const bestFor = name => {
+  const weightRecords = recordsFor(name).filter(record => record.unit === 'kg');
+  const actualOneRepMax = weightRecords.filter(record => recordRm(record) === 1);
+  const source = actualOneRepMax.length ? actualOneRepMax : weightRecords;
+  return Math.max(...source.map(record => record.value / (rmMultipliers[recordRm(record)] || 1)), 0);
+};
 const bestRecord = name => {
   const matching = recordsFor(name);
   if (!matching.length) return null;
