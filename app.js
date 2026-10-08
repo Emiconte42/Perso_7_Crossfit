@@ -22,7 +22,7 @@ const exerciseInfo = {
     intro: 'Un mouvement de force pour les jambes et le gainage.',
     muscles: [['Quadriceps', '#ff6685'], ['Fessiers', '#ffbd53'], ['Tronc', '#65d8b5']],
     steps: ['Pieds sous la barre, poitrine haute', 'Descends en contrôlant, genoux dans l’axe des pieds', 'Pousse le sol et verrouille debout'],
-    photos: ['Photos/back-squat-standing.png', 'Photos/back-squat-bottom.png']
+    photos: []
   },
   Deadlift: {
     intro: 'Un mouvement de chaîne postérieure réalisé depuis le sol.',
