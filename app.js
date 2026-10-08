@@ -1,8 +1,23 @@
-const exercises = {
-  'Back Squat': { category: 'Squats', discipline: ['Force', 'Lourd'], unit: 'kg', description: 'Le mouvement de référence pour suivre ta force des jambes.' },
-  Deadlift: { category: 'Deadlifts', discipline: ['Force', 'Lourd'], unit: 'kg', description: 'La force totale et la capacité à déplacer lourd depuis le sol.' },
-  'Bench Press': { category: 'Presses', discipline: ['Force', 'Lourd'], unit: 'kg', description: 'Le mouvement de poussée horizontal pour suivre ta force du haut du corps.' }
-};
+const exercises = {};
+const addExercises = (category, names, unit, discipline, description) => names.forEach(name => {
+  exercises[name] = { category, discipline, unit, description };
+});
+addExercises('Squats', ['Back Squat', 'Front Squat', 'Overhead Squat'], 'kg', ['Force', 'Lourd'], 'Un mouvement de squat pour suivre la force et la stabilité des jambes.');
+addExercises('Cleans', ['Clean', 'Hang Power Clean', 'Hang Squat Clean', 'Muscle Clean', 'Power Clean', 'Squat Clean'], 'kg', ['Haltéro', 'Lourd'], 'Un mouvement d’épaulé pour développer puissance et coordination.');
+addExercises('Presses', ['Bench Press', 'Push Press', 'Shoulder Press', 'Thruster'], 'kg', ['Force', 'Lourd'], 'Un mouvement de poussée pour suivre la force du haut du corps.');
+addExercises('Jerks', ['Push Jerk', 'Split Jerk'], 'kg', ['Haltéro', 'Lourd'], 'Un mouvement de jeté pour développer puissance et stabilité overhead.');
+addExercises('Snatches', ['Hang Power Snatch', 'Hang Squat Snatch', 'Muscle Snatch', 'Power Snatch', 'Snatch', 'Snatch Balance', 'Squat Snatch'], 'kg', ['Haltéro', 'Lourd'], 'Un mouvement d’arraché pour développer vitesse, mobilité et puissance.');
+addExercises('Deadlifts', ['Deadlift', 'Snatch Grip Deadlift', 'Sumo Deadlift'], 'kg', ['Force', 'Lourd'], 'Un mouvement de tirage pour suivre la force de la chaîne postérieure.');
+addExercises('Olympic Lifts', ['Clean & Jerk', 'Power Clean & Jerk'], 'kg', ['Haltéro', 'Lourd'], 'Un mouvement olympique combinant épaulé et jeté.');
+addExercises('Run', ['400m Run', '800m Run', '1km Run', '1600m Run', '2km Run', '3km Run', '5km Run', '10km Run', 'Half Marathon Run', 'Marathon Run'], 'min', ['Cardio', 'Endurance'], 'Une distance de course pour suivre ta vitesse et ton endurance.');
+addExercises('Row', ['250m Row', '500m Row', '1000m Row', '2000m Row', '5km Row', '10km Row'], 'min', ['Cardio', 'Endurance'], 'Une distance au rameur pour suivre ton endurance.');
+addExercises('Ski Erg', ['250m Ski', '500m Ski', '1000m Ski', '2000m Ski'], 'min', ['Cardio', 'Endurance'], 'Une distance au SkiErg pour suivre ton endurance.');
+addExercises('Assault Bike', ['25 Cal', '50 Cal', '100 Cal'], 'min', ['Cardio', 'Endurance'], 'Un effort à l’Assault Bike pour suivre ta capacité cardio.');
+addExercises('Burpees', ['30 Burpees', '50 Burpees', '100 Burpees'], 'rep', ['Cardio', 'Endurance'], 'Un volume de burpees pour suivre ta capacité à soutenir un effort intense.');
+addExercises('Max Reps', ['Bar Muscle-ups', 'Chest-to-Bar', 'Chest-to-Bar Strict', 'Dips', 'Double Unders', 'HSPU Kipping', 'HSPU Strict', 'Pistols', 'Pull-ups', 'Pull-ups Strict', 'Push-ups', 'Ring Dips', 'Ring Dips Strict', 'Ring Muscle-ups', 'Ring Push-ups', 'Toes-to-bar'], 'rep', ['Gym', 'Force'], 'Un mouvement de gymnastique à réaliser avec un maximum de répétitions.');
+addExercises('1 RM', ['Weighted Dip', 'Weighted Pull-up'], 'kg', ['Gym', 'Force'], 'Un mouvement lesté pour suivre ta force relative.');
+addExercises('Max Distance', ['Handstand Walk'], 'm', ['Gym', 'Vitesse'], 'Une distance à réaliser en équilibre sur les mains.');
+addExercises('Girls', ['Amanda', 'Andi', 'Angie', 'Annie', 'Barbara', 'Chelsea', 'Cindy', 'Diane', 'Elizabeth', 'Eva', 'Fran', 'Grace', 'Helen', 'Isabel', 'Jackie', 'Karen', 'Kelly', 'Linda', 'Lynne', 'Mary', 'Nancy', 'Nicole'], 'min', ['Benchmark', 'Endurance'], 'Un benchmark CrossFit à chronométrer.');
 const categoryColors = {
   Squats: '#ff7068',
   Cleans: '#3182ce',
@@ -15,7 +30,11 @@ const categoryColors = {
   Row: '#3182ce',
   'Ski Erg': '#e49a27',
   'Assault Bike': '#2fbd87',
-  Burpees: '#3182ce'
+  Burpees: '#3182ce',
+  'Max Reps': '#e45f68',
+  '1 RM': '#3182ce',
+  'Max Distance': '#e49a27',
+  Girls: '#e45f68'
 };
 const exerciseInfo = {
   'Back Squat': {
@@ -67,7 +86,17 @@ const bestForRm = (name, rm) => {
   return matching.length ? Math.max(...matching.map(record => record.value)) : 0;
 };
 const bestFor = name => Math.max(...recordsFor(name).filter(record => record.unit === 'kg').map(record => record.value / (rmMultipliers[recordRm(record)] || 1)), 0);
-const categoryHasWeight = names => names.some(name => recordsFor(name).some(record => record.unit === 'kg' && record.value > 0));
+const bestRecord = name => {
+  const matching = recordsFor(name);
+  if (!matching.length) return null;
+  return matching.reduce((best, record) => {
+    if (!best) return record;
+    if (record.unit === 'min') return record.value < best.value ? record : best;
+    return record.value > best.value ? record : best;
+  }, null);
+};
+const formatRecord = record => record ? `${record.value} ${record.unit}` : '';
+const categoryHasWeight = names => names.some(name => recordsFor(name).some(record => Number(record.value) > 0));
 const groupByCategory = () => exerciseList().reduce((groups, name) => { const category = exercises[name].category; (groups[category] ||= []).push(name); return groups; }, {});
 const colorForCategory = category => categoryColors[category] || '#96999f';
 const infoFor = name => exerciseInfo[name] || { intro: 'Les principaux muscles sollicités par ce mouvement.', muscles: [['Muscles principaux', colorForCategory(exercises[name].category)]], steps: ['Position de départ', 'Réalisation contrôlée', 'Retour en position stable'], photos: [] };
@@ -125,7 +154,7 @@ function render() {
   if (currentView === 'profile') renderGallery();
 }
 function renderPrs() {
-  return `<section class="view"><div class="section-heading prs-heading"><p>${exerciseList().length} mouvements suivis</p></div>${Object.entries(groupByCategory()).map(([category, names]) => `<section class="category" style="--category-color:${colorForCategory(category)}"><div class="category-title"><h3>${category}</h3>${categoryHasWeight(names) ? '<span class="dot"></span>' : ''}</div>${names.map(name => `<div class="exercise-row"><button class="exercise-main" data-exercise="${name}"><span><strong class="exercise-name">${name}</strong><small>${exercises[name].discipline.join(' · ')}</small></span><span class="exercise-value">${bestFor(name) ? `${bestFor(name)} kg` : ''}</span></button><button class="exercise-info" data-info="${name}" aria-label="Informations sur ${name}">i</button></div>`).join('')}</section>`).join('')}</section>`;
+  return `<section class="view"><div class="section-heading prs-heading"><p>${exerciseList().length} exercices disponibles</p></div>${Object.entries(groupByCategory()).map(([category, names]) => `<section class="category" style="--category-color:${colorForCategory(category)}"><div class="category-title"><h3>${category}</h3>${categoryHasWeight(names) ? '<span class="dot"></span>' : ''}</div>${names.map(name => `<div class="exercise-row"><button class="exercise-main" data-exercise="${name}"><span><strong class="exercise-name">${name}</strong><small>${exercises[name].discipline.join(' · ')}</small></span><span class="exercise-value">${formatRecord(bestRecord(name))}</span></button><button class="exercise-info" data-info="${name}" aria-label="Informations sur ${name}">i</button></div>`).join('')}</section>`).join('')}</section>`;
 }
 function showExerciseInfo(name) {
   const info = infoFor(name);
