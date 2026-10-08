@@ -52,7 +52,7 @@ seed.forEach(record => {
   if (!records.some(existing => existing.name === record.name && existing.value === record.value && existing.date === record.date)) records.push(record);
 });
 localStorage.setItem('forge-records', JSON.stringify(records));
-let profile = JSON.parse(localStorage.getItem('forge-profile') || 'null') || { name: 'Emilie Conte', birthDate: '', weight: '', height: '', bodyFat: '' };
+let profile = JSON.parse(localStorage.getItem('forge-profile') || 'null') || { name: 'Emilie', birthDate: '', weight: '', height: '', bodyFat: '' };
 let currentView = 'prs';
 let selectedExercise = null;
 let selectedRm = 1;
