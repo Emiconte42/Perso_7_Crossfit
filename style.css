@@ -60,3 +60,24 @@ h1{background:linear-gradient(90deg,#ff718d 0%,#ffbd59 26%,#eaff57 48%,#5de4b3 7
 .primary-button{background:linear-gradient(90deg,#ff6d8a,#ffbd53,#e7ff51);box-shadow:0 6px 20px rgba(255,117,125,.23)}
 input,select{background:#10132b;border-color:#4a4f88}
 dialog{background:linear-gradient(145deg,#1d2045,#12152d);border-color:#4b5190}
+
+/* A calmer visual system: solid surfaces, restrained color, and tighter corners. */
+:root{--bg:#17191b;--panel:#222528;--panel-soft:#2b2f32;--line:#3a3f42;--text:#f1f0eb;--muted:#a5a7a5;--accent:#d8a45e;--coral:#c87968}
+.hero-card,.general-score{background:var(--accent);border-radius:10px}
+.profile-head,.stat-card,.chart-card,.movement-placeholder,.gallery-card,dialog{border-radius:10px}
+.profile-avatar,.nav-add,.fit-ring{border-radius:50%}
+.category-title .dot{box-shadow:none}
+.exercise-row:hover,.exercise-row:focus-visible{background:var(--panel)}
+.nav-add{background:var(--accent);box-shadow:none}
+.nav-item.active .nav-icon{color:var(--accent);text-shadow:none}
+.bottom-nav{background:rgba(23,25,27,.97);backdrop-filter:none}
+.fit-ring{background:conic-gradient(var(--accent) var(--score),var(--panel-soft) 0)}
+.fit-insight>div{background:var(--panel);border-color:var(--line)}
+.percentage-card:hover,.percentage-card:focus{border-color:var(--accent);box-shadow:none}
+.rm-option.selected{background:var(--accent);color:#17191b}
+.rm-badge{border-color:var(--line);background:var(--panel-soft);color:var(--text)}
+.primary-button{background:var(--accent);box-shadow:none}
+input,select{background:var(--bg);border-color:var(--line)}
+dialog{background:var(--panel);border-color:var(--line)}
+.record-delete{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:4px 0 4px 8px}
+.record-delete:hover,.record-delete:focus-visible{color:var(--coral);outline:none}
