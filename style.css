@@ -81,4 +81,5 @@ input,select{background:var(--bg);border-color:var(--line)}
 dialog{background:var(--panel);border-color:var(--line)}
 .record-delete{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:4px 0 4px 8px}
 .record-delete:hover,.record-delete:focus-visible{color:var(--coral);outline:none}
+.record-edit{border:0;background:none;color:var(--muted);font-size:15px;line-height:1;padding:4px 0}.record-edit:hover,.record-edit:focus-visible{color:var(--accent);outline:none}
 .data-backup{margin-top:28px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px}.data-backup p{color:var(--muted);font-size:12px;line-height:1.5}.backup-actions{display:flex;gap:10px;flex-wrap:wrap}.backup-actions button{margin:0}.secondary-button{border:1px solid var(--line);border-radius:8px;padding:14px;background:transparent;color:var(--text);font-weight:800}

@@ -29,7 +29,7 @@
     </nav>
   </div>
   <dialog id="performance-dialog"><form method="dialog" id="performance-form">
-    <div class="dialog-head"><div><p class="eyebrow">NOUVELLE DONNÉE</p><h2>Ajouter une performance</h2></div><button type="button" id="close-performance-dialog" class="close-button" aria-label="Fermer">×</button></div>
+    <div class="dialog-head"><div><p class="eyebrow">NOUVELLE DONNÉE</p><h2 id="performance-title">Ajouter une performance</h2></div><button type="button" id="close-performance-dialog" class="close-button" aria-label="Fermer">×</button></div>
     <label>Exercice<select id="exercise-input" required></select></label>
     <label>Valeur<input id="value-input" type="number" min="0" step="0.5" placeholder="Ex. 90" required></label>
     <label>Type de performance<select id="rm-input">
@@ -42,7 +42,7 @@
     <label>Unité<select id="unit-input"><option>kg</option><option>rep</option><option>m</option><option>min</option></select></label>
     <label>Joindre une photo / vidéo <span class="optional-label">(facultatif)</span><input id="media-input" type="file" accept="image/*,video/*"></label>
     <label>Date<input id="date-input" type="date" required></label>
-    <button class="primary-button" value="default">Enregistrer la performance</button>
+    <button id="performance-submit" class="primary-button" value="default">Enregistrer la performance</button>
   </form></dialog>
   <dialog id="plates-dialog"></dialog>
   <dialog id="exercise-info-dialog"></dialog>
