@@ -233,10 +233,10 @@ function chartPath(points) {
     return `C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
   }).join(' ');
 }
-function renderProgressChart(history, best) {
-  const values = history.filter(record => record.unit === 'kg').sort((a, b) => a.date.localeCompare(b.date));
-  if (!values.length || !best) return '<div class="chart-card"><div class="chart-title"><span>Progression</span><strong>Aucune donnée</strong></div></div>';
-  const max = Math.max(...values.map(record => Number(record.value)), best);
+function renderProgressChart(history, selectedRm, selectedBase) {
+  const values = history.filter(record => record.unit === 'kg' && recordRm(record) === selectedRm).sort((a, b) => a.date.localeCompare(b.date));
+  if (!values.length || !selectedBase) return `<div class="chart-card"><div class="chart-title"><span>Progression · ${selectedRm}RM</span><strong>Aucune donnée</strong></div></div>`;
+  const max = Math.max(...values.map(record => Number(record.value)), selectedBase);
   const min = Math.min(0, ...values.map(record => Number(record.value)));
   const range = Math.max(1, max - min);
   const points = values.map((record, index) => ({
@@ -246,7 +246,7 @@ function renderProgressChart(history, best) {
   const first = points[0];
   const last = points[points.length - 1];
   const trendPath = `M ${first.x} ${first.y} L ${last.x} ${last.y}`;
-  return `<div class="chart-card"><div class="chart-title"><span>Progression</span><strong>${best} kg</strong></div><div class="line-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Courbe de progression"><path class="chart-trend" d="${trendPath}"></path><path class="chart-line" d="${chartPath(points)}"></path>${points.map((point, index) => `<circle class="chart-point" cx="${point.x}" cy="${point.y}" r="1.25"><title>${values[index].value} kg · ${formatDate(values[index].date)}</title></circle>`).join('')}</svg></div><div class="chart-axis"><span>Historique</span><span>Aujourd'hui</span></div></div>`;
+  return `<div class="chart-card"><div class="chart-title"><span>Progression · ${selectedRm}RM</span><strong>${selectedBase} kg</strong></div><div class="line-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Courbe de progression ${selectedRm}RM"><path class="chart-trend" d="${trendPath}"></path><path class="chart-line" d="${chartPath(points)}"></path>${points.map((point, index) => `<circle class="chart-point" cx="${point.x}" cy="${point.y}" r="1.25"><title>${values[index].value} kg · ${formatDate(values[index].date)}</title></circle>`).join('')}</svg></div><div class="chart-axis"><span>Historique</span><span>Aujourd'hui</span></div></div>`;
 }
 function renderDetail() {
   const movement = exercises[selectedExercise];
@@ -255,7 +255,7 @@ function renderDetail() {
   const selectedBase = rmValues[selectedRm];
   const latest = recordsFor(selectedExercise).sort((a, b) => b.date.localeCompare(a.date))[0];
   const history = recordsFor(selectedExercise).sort((a, b) => b.date.localeCompare(a.date)).map(record => `<div class="rm-history-row"><span class="rm-badge">${record.unit === 'kg' ? `${recordRm(record)} RM` : record.unit}</span><span>${formatDate(record.date)}</span><strong>${record.value} ${record.unit}</strong></div>`).join('');
-  const chart = renderProgressChart(recordsFor(selectedExercise), best);
+  const chart = renderProgressChart(recordsFor(selectedExercise), selectedRm, selectedBase);
   const analytics = `<div class="analytics-panel"><div class="section-heading"><h3>Analytics</h3><p>${selectedRm}RM · charges de travail</p></div><div class="percentage-grid">${percentages.map(percent => `<button class="percentage-card" data-percent="${percent}" data-exercise="${selectedExercise}"><strong>${percent}%</strong><span>${Math.round(selectedBase * percent / 100 * 2) / 2} kg</span></button>`).join('')}</div></div>`;
   return `<section class="view detail-view"><button class="back-link" data-view="prs">← Toutes mes PRs</button><div class="detail-heading"><div><p class="eyebrow" style="color:${colorForCategory(movement.category)}">${movement.category.toUpperCase()}</p><h2>${selectedExercise}</h2><p>${movement.description}</p></div><div class="detail-actions"><span class="detail-dot" style="background:${colorForCategory(movement.category)}"></span><button type="button" class="detail-add" data-add-exercise="${selectedExercise}" aria-label="Ajouter une performance pour ${selectedExercise}">+</button></div></div><div class="rm-selector">${[1, 3, 5, 8].map(rm => `<button class="rm-option ${selectedRm === rm ? 'selected' : ''}" data-rm="${rm}"><strong>${rm}RM</strong><span>${rmValues[rm]} kg</span></button>`).join('')}</div>${analytics}<div class="record-highlight"><span>${selectedRm}RM</span><strong>${selectedBase} kg</strong><small>Dernière mise à jour · ${latest ? formatDate(latest.date) : 'Aucune'}</small></div>${chart}<div class="section-heading history-heading"><h3>Historique</h3><p>Tous les RM confondus</p></div><div class="rm-history">${history || '<p class="empty">Aucune performance enregistrée.</p>'}</div></section>`;
 }
